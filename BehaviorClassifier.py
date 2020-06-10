@@ -10,6 +10,8 @@ from moviepy.config import get_setting
 import time, moviepy, matlab.engine, shutil, math
 from scipy.io import loadmat
 import random
+from PIL import Image, ImageTk, ImageDraw
+import PIL
 
 
 class BehaviorClassifier(object):
@@ -21,7 +23,7 @@ class BehaviorClassifier(object):
 
 	Notes: Code assumes number of wells does not exceed 12.
 
-	Author: Ben Habermeyer, some materials from Logan
+	Authors: Ben Habermeyer, Logan and Patrick McClanahan
 	Contact: benhabe@seas.upenn.edu, 434-242-6984
 	'''
 
@@ -30,6 +32,7 @@ class BehaviorClassifier(object):
 		Initializes path variables to the code, classifier, tracker, and jaaba, and executes the functions
 		to select and classify a video
 		'''
+
 		#path to where the code is kept
 		self.code_path = r'C:\Users\bmain\PycharmProjects\Behavior_Classifier_Ben'
 		#classifier filename
@@ -52,7 +55,7 @@ class BehaviorClassifier(object):
 		#calibrate the tracker
 		self.calibrate_tracker()
 		self.checkbox_grid()
-		self.find_centers()
+		self.find_centers() # PATRICK EXCLUDES THIS
 		#track the video
 		self.run_tracker()
 		#reorganize the folders for JAABA
@@ -64,17 +67,19 @@ class BehaviorClassifier(object):
 		#get the output
 		self.get_lunge_data()
 
-		#other important variables which will be created during this code run
-		#self.filename = full path to and ending with video name
-		#self.root is root of folder containing video, filename without the file extension
-		#self.name is video name without extension
-		#self.fullname is the video name with extension
-		#self.calib is the path to the calibration .mat file
-		#self.excluded_wells is a list of wells to remove from analysis
-		#self.well_dictionary is a dictionary mapping well to x and y center coordinates
-		#self.well_circles is a list containing lists of x,y, and radii coordinates of well circles
-		#self.x_centers are the x pixel coordinates of well centers
-		#self.y_centers are the y pixel coordinates of well centers
+		'''
+		other important variables which will be created during this code run
+		self.filename = full path to and ending with video name
+		self.root is root of folder containing video, filename without the file extension
+		self.name is video name without extension
+		self.fullname is the video name with extension
+		self.calib is the path to the calibration .mat file
+		self.excluded_wells is a list of wells to remove from analysis
+		self.well_dictionary is a dictionary mapping well to x and y center coordinates
+		self.well_circles is a list containing lists of x,y, and radii coordinates of well circles
+		self.x_centers are the x pixel coordinates of well centers
+		self.y_centers are the y pixel coordinates of well centers
+		'''
 
 	def load_single(self):
 		"""
@@ -193,7 +198,8 @@ class BehaviorClassifier(object):
 		#rename the originial file and path to be the new cropped file
 		self.fullname = outputname
 		self.name = self.name + '_cropped'
-		self.filename = self.root + '/'
+		self.filename = self.root + '/' + self.fullname
+
 	def calibrate_tracker(self):
 		"""
 		Launches MATLAB code for automatic calibration of the video. Follow steps outlined on FlyTracker
@@ -212,7 +218,7 @@ class BehaviorClassifier(object):
 		# takes as input the path to the video and the path to the calibration file
 		video = self.filename # this is the file to the trimmed video per well
 		self.calib = video.split('.')[0] + '_calibration.mat' 
-		# Launch FlyTracker Calibration - takes as input the path name to the video and the
+		# Launch FlyTracker Calibration - takes as input the path name to the video and flytracker and calibration file
 		eng.auto_calibrate(self.flytracker_path, video, self.calib, nargout = 0) 
 
 		try:  # try quiting out of any lingering matlab engines
@@ -262,6 +268,13 @@ class BehaviorClassifier(object):
 
 		#master tkinter window
 		master = Tk()
+
+		#load first frame (NB: ImageTk MUST BE CALLED AFTER Tk())
+		clip = VideoFileClip(self.filename)
+		img = clip.get_frame(0) # load frame
+		im_width = np.size(img,1)
+		PILimg = PIL.Image.fromarray(img) # imagetk needs a PIL image
+		ph = ImageTk.PhotoImage(PILimg) # tk needs a photo image
 
 		#grid of checkbuttons corresponding to each well with a value equal to their well number
 		#assumes grid of 12 wells
