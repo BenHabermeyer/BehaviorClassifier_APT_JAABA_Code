@@ -12,6 +12,7 @@ from scipy.io import loadmat
 import random
 from PIL import Image, ImageTk, ImageDraw
 import PIL
+import time
 
 
 class BehaviorClassifier(object):
@@ -34,13 +35,13 @@ class BehaviorClassifier(object):
 		'''
 
 		#path to where the code is kept
-		self.code_path = r'C:\Users\bmain\PycharmProjects\Behavior_Classifier_Ben'
+		self.code_path = r'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\BehaviorClassifier_APT_JAABA_Code'
 		#classifier filename
 		self.classifier = 'LungeV3.jab'
 		#FlyTracker path on computer
-		self.flytracker_path = r'C:\Users\bmain\PycharmProjects\Behavior_Classifier_Ben\FlyTracker-1.0.5'
+		self.flytracker_path = r'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\FlyTracker-1.0.5'
 		#JAABA path on computer
-		self.jaaba_path = r'C:\Users\bmain\PycharmProjects\Behavior_Classifier_Ben\JAABA-master\perframe'
+		self.jaaba_path = r'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\JAABA\perframe'
 
 		#background variables
 		self.num_wells = 12
@@ -272,38 +273,41 @@ class BehaviorClassifier(object):
 		#load first frame (NB: ImageTk MUST BE CALLED AFTER Tk())
 		clip = VideoFileClip(self.filename)
 		img = clip.get_frame(0) # load frame
-		im_width = np.size(img,1)
+		im_height = np.size(img,1)
+		im_width = np.size(img,0)
 		PILimg = PIL.Image.fromarray(img) # imagetk needs a PIL image
-		ph = ImageTk.PhotoImage(PILimg) # tk needs a photo image
+		PILimg_resize = PILimg.resize((int(im_height/2), int(im_width/2)), PIL.Image.ANTIALIAS)
+		ph = ImageTk.PhotoImage(PILimg_resize) # tk needs a photo image
 
 		#grid of checkbuttons corresponding to each well with a value equal to their well number
 		#assumes grid of 12 wells
-		Label(master, text="Check Wells to Exclude from Analysis (if any) and click 'Done'").grid(row=0, columnspan = 4,  pady = 4)
+		Label(master, image = ph, bg = "black").grid(row=0, columnspan = 4,  pady = 4)
+		Label(master, text="Check Wells to Exclude from Analysis (if any) and click 'Done'").grid(row=1, columnspan = 4,  pady = 4)
 		var1 = IntVar()
-		Checkbutton(master, text="Well 1", variable=var1, onvalue=1, offvalue=0, anchor='w').grid(row=1, column=0, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 1", variable=var1, onvalue=1, offvalue=0, anchor='w').grid(row=2, column=0, pady = 4, padx = 8)
 		var2 = IntVar()
-		Checkbutton(master, text="Well 2", variable=var2, onvalue=2, offvalue=0, anchor='w').grid(row=1, column=1, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 2", variable=var2, onvalue=2, offvalue=0, anchor='w').grid(row=2, column=1, pady = 4, padx = 8)
 		var3 = IntVar()
-		Checkbutton(master, text="Well 3", variable=var3, onvalue=3, offvalue=0, anchor='w').grid(row=1, column=2, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 3", variable=var3, onvalue=3, offvalue=0, anchor='w').grid(row=2, column=2, pady = 4, padx = 8)
 		var4 = IntVar()
-		Checkbutton(master, text="Well 4", variable=var4, onvalue=4, offvalue=0, anchor='w').grid(row=1, column=3, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 4", variable=var4, onvalue=4, offvalue=0, anchor='w').grid(row=2, column=3, pady = 4, padx = 8)
 		var5 = IntVar()
-		Checkbutton(master, text="Well 5", variable=var5, onvalue=5, offvalue=0, anchor='w').grid(row=2, column=0, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 5", variable=var5, onvalue=5, offvalue=0, anchor='w').grid(row=3, column=0, pady = 4, padx = 8)
 		var6 = IntVar()
-		Checkbutton(master, text="Well 6", variable=var6, onvalue=6, offvalue=0, anchor='w').grid(row=2, column=1, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 6", variable=var6, onvalue=6, offvalue=0, anchor='w').grid(row=3, column=1, pady = 4, padx = 8)
 		var7 = IntVar()
-		Checkbutton(master, text="Well 7", variable=var7, onvalue=7, offvalue=0, anchor='w').grid(row=2, column=2, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 7", variable=var7, onvalue=7, offvalue=0, anchor='w').grid(row=3, column=2, pady = 4, padx = 8)
 		var8 = IntVar()
-		Checkbutton(master, text="Well 8", variable=var8, onvalue=8, offvalue=0, anchor='w').grid(row=2, column=3, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 8", variable=var8, onvalue=8, offvalue=0, anchor='w').grid(row=3, column=3, pady = 4, padx = 8)
 		var9 = IntVar()
-		Checkbutton(master, text="Well 9", variable=var9, onvalue=9, offvalue=0, anchor='w').grid(row=3, column=0, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 9", variable=var9, onvalue=9, offvalue=0, anchor='w').grid(row=4, column=0, pady = 4, padx = 8)
 		var10 = IntVar()
-		Checkbutton(master, text="Well 10", variable=var10, onvalue=10, offvalue=0, anchor='w').grid(row=3, column=1, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 10", variable=var10, onvalue=10, offvalue=0, anchor='w').grid(row=4, column=1, pady = 4, padx = 8)
 		var11 = IntVar()
-		Checkbutton(master, text="Well 11", variable=var11, onvalue=11, offvalue=0, anchor='w').grid(row=3, column=2, pady = 4, padx = 8)
+		Checkbutton(master, text="Well 11", variable=var11, onvalue=11, offvalue=0, anchor='w').grid(row=4, column=2, pady = 4, padx = 8)
 		var12 = IntVar()
-		Checkbutton(master, text="Well 12", variable=var12, onvalue=12, offvalue=0, anchor='w').grid(row=3, column=3, pady = 4, padx = 8)
-		Button(master, text='Done', command=get_state).grid(row=4, column = 1)
+		Checkbutton(master, text="Well 12", variable=var12, onvalue=12, offvalue=0, anchor='w').grid(row=4, column=3, pady = 4, padx = 8)
+		Button(master, text='Done', command=get_state).grid(row=5, column = 1)
 
 		#run loop indefinitely
 		master.mainloop()
@@ -552,7 +556,6 @@ class BehaviorClassifier(object):
 
 #create instance of class and run
 if __name__ == '__main__':
-	import time
 	s = time.time()
 	self = BehaviorClassifier()
 	print('Program took this long to run: ' + str(time.time() - s) + ' seconds')
