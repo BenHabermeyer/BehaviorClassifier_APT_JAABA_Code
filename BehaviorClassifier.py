@@ -40,14 +40,15 @@ class BehaviorClassifier(object):
 
 		#select the video file
 		self.load_single()
-		#ask if you want to crop the first x seconds
-		self.ask_crop()
-
 		#select all other folders and files needed
 		self.load_codepath()
 		self.load_flytrackerpath()
 		self.load_jaabapath()
 		self.load_classifierpath()
+		self.load_aptpath()
+
+		#ask if you want to crop the first x seconds
+		self.ask_crop()
 
 		#MATLAB stuff
 		#calibrate the tracker
@@ -73,6 +74,8 @@ class BehaviorClassifier(object):
 		self.classifier_path : path to .jab file
 		self.flytracker_path : FlyTracker folder path on computer
 		self.jaaba_path : JAABA folder path on computer
+		self.apt_path : APT folder path on computer
+		self.tracker_path : path to .lbl file
 		self.filename : full path to and ending with video name 
 		self.root : root of folder containing video, filename without the file extension
 		self.name : video name without extension
@@ -129,12 +132,46 @@ class BehaviorClassifier(object):
 
 	def load_classifierpath(self):
 		"""
-		Launch a GUI so people can click on the folder with .jab project
+		Launch a GUI so people can click on the file with .jab project
 		"""
 		print('Please select the .jab classifier you would like to use')
 		root = tk.Tk()
 		root.withdraw()
 		self.classifier_path = filedialog.askopenfilename() 
+		root.destroy()
+
+	def load_aptpath(self):
+		"""
+		Launch a GUI to ask if person wants to add APT tracker
+		"""
+		root = tk.Tk()
+		root.withdraw()
+		MsgBox = tk.messagebox.askquestion('Add APT',"Would you like to add an APT trackekr before classification?", icon = 'warning')
+		if MsgBox == 'yes':
+			root.destroy()
+			self.load_aptpath()
+			self.load_lblfile()
+		else:
+			root.destroy()
+
+	def load_aptfolder():
+		"""
+		Launch a GUI so people can click on the folder with APT
+		"""
+		print('Please select the folder containing APT')
+		root = tk.Tk()
+		root.withdraw()
+		self.apt_path = filedialog.askdirectory()
+		root.destroy()
+
+	def load_lblfile():
+		"""
+		Launch a GUI so people can click on the file with .lbl project
+		"""
+		print('Please select the .lbl tracker you would like to use')
+		root = tk.Tk()
+		root.withdraw()
+		self.tracker_path = filedialog.askopenfilename() 
 		root.destroy()
 
 	def parent(self, path):
