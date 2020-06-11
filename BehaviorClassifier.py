@@ -34,15 +34,6 @@ class BehaviorClassifier(object):
 		to select and classify a video
 		'''
 
-		#path to where the code is kept
-		self.code_path = r'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\BehaviorClassifier_APT_JAABA_Code'
-		#classifier filename
-		self.classifier = 'LungeV3.jab'
-		#FlyTracker path on computer
-		self.flytracker_path = r'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\FlyTracker-1.0.5'
-		#JAABA path on computer
-		self.jaaba_path = r'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\JAABA\perframe'
-
 		#background variables
 		self.num_wells = 12
 		self.n_cpus = 2
@@ -52,10 +43,18 @@ class BehaviorClassifier(object):
 		#ask if you want to crop the first x seconds
 		self.ask_crop()
 
+		#select all other folders and files needed
+		self.load_codepath()
+		self.load_flytrackerpath()
+		self.load_jaabapath()
+		self.load_classifierpath()
+
 		#MATLAB stuff
 		#calibrate the tracker
 		self.calibrate_tracker()
+		#wells to exclude
 		self.checkbox_grid()
+		#find centers of wells for matching flies to well
 		self.find_centers() # PATRICK EXCLUDES THIS
 		#track the video
 		self.run_tracker()
@@ -66,20 +65,24 @@ class BehaviorClassifier(object):
 		#run the JAABA program
 		self.classify_behavior()
 		#get the output
-		self.get_lunge_data()
+		self.get_classifier_data()
 
 		'''
-		other important variables which will be created during this code run
-		self.filename = full path to and ending with video name
-		self.root is root of folder containing video, filename without the file extension
-		self.name is video name without extension
-		self.fullname is the video name with extension
-		self.calib is the path to the calibration .mat file
-		self.excluded_wells is a list of wells to remove from analysis
-		self.well_dictionary is a dictionary mapping well to x and y center coordinates
-		self.well_circles is a list containing lists of x,y, and radii coordinates of well circles
-		self.x_centers are the x pixel coordinates of well centers
-		self.y_centers are the y pixel coordinates of well centers
+		VARIABLES CREATED
+		self.code_path : path to where the code is kept
+		self.classifier_path : path to .jab file
+		self.flytracker_path : FlyTracker folder path on computer
+		self.jaaba_path : JAABA folder path on computer
+		self.filename : full path to and ending with video name 
+		self.root : root of folder containing video, filename without the file extension
+		self.name : video name without extension
+		self.fullname : the video name with extension
+		self.calib : path to the calibration .mat file
+		self.excluded_wells : list of wells to remove from analysis
+		self.well_dictionary : dictionary mapping well to x and y center coordinates
+		self.well_circles : list containing lists of x,y, and radii coordinates of well circles
+		self.x_centers : x pixel coordinates of well centers
+		self.y_centers : y pixel coordinates of well centers
 		'''
 
 	def load_single(self):
@@ -92,6 +95,46 @@ class BehaviorClassifier(object):
 		self.filename = filedialog.askopenfilename()  # Set the filename of the video
 		self.root = self.parent(self.filename)  # Set the video's folder
 		self.name, self.fullname = self.get_fname(self.filename)
+		root.destroy()
+
+	def load_codepath(self):
+		"""
+		Launch a GUI so people can click on the folder with the code
+		"""
+		print('Please select the folder containing .m code files')
+		root = tk.Tk()
+		root.withdraw()
+		self.code_path = filedialog.askdirectory() 
+		root.destroy()
+
+	def load_flytrackerpath(self):
+		"""
+		Launch a GUI so people can click on the folder with flytracker
+		"""
+		print('Please select the folder containing flytracker files')
+		root = tk.Tk()
+		root.withdraw()
+		self.flytracker_path = filedialog.askdirectory() 
+		root.destroy()
+
+	def load_jaabapath(self):
+		"""
+		Launch a GUI so people can click on the folder with JAABA
+		"""
+		print('Please select the folder containing JAABA')
+		root = tk.Tk()
+		root.withdraw()
+		self.jaaba_path = filedialog.askdirectory()
+		root.destroy()
+
+	def load_classifierpath(self):
+		"""
+		Launch a GUI so people can click on the folder with .jab project
+		"""
+		print('Please select the .jab classifier you would like to use')
+		root = tk.Tk()
+		root.withdraw()
+		self.classifier_path = filedialog.askopenfilename() 
 		root.destroy()
 
 	def parent(self, path):
@@ -484,8 +527,7 @@ class BehaviorClassifier(object):
 			print('could not find any engines to quit')
 			pass
 		eng = matlab.engine.start_matlab() 
-		classifier_path = self.code_path + '/' + self.classifier
-		eng.classify_behavior(self.jaaba_path, classifier_path, self.root, nargout = 0)
+		eng.classify_behavior(os.path.join(self.jaaba_path, 'perframe'), self.classifier_path, self.root, nargout = 0)
 
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
@@ -493,7 +535,7 @@ class BehaviorClassifier(object):
 			print('could not find any engines to quit')
 			pass	
 
-	def get_lunge_data(self):
+	def get_classifier_data(self):
 		"""
 		calls MATLAB function to grab the data from the JAABA output and write to an excel file
 		"""
@@ -507,7 +549,8 @@ class BehaviorClassifier(object):
 		eng = matlab.engine.start_matlab() 
 		directory = self.root
 		videoname = self.name
-		classifiername = self.classifier.split('.')[0]
+		head, tail = os.path.split(self.classifier_path)
+		classifiername = tail.split('.')[0]
 		excluded = self.excluded_wells
 		xvals = self.x_centers
 		yvals = self.y_centers
