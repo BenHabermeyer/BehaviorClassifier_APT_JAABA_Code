@@ -14,11 +14,11 @@ function get_lunges4(directory, videoname, classifiername, excluded) %PDM
     % python
     
 %     % debugging
-%     clear
-%     directory = 'C:/Users/PDMcClanahan/Dropbox/Kayser lab/tracking and behavior/short_test_vid';
-%     videoname = 'MAH00479_cropped_cropped';
-%     classifiername = 'LungeV3';
-%     excluded = [3, 4, 7, 8, 12];
+     clear
+     directory = 'C:\Users\Ben\Documents\COURTSHIP TEST VID';
+     videoname = 'video1';
+     classifiername = 'LungeV3';
+     excluded = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12];
     
     
     %add the input folder to path

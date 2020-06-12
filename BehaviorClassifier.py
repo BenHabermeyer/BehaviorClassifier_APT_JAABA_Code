@@ -33,10 +33,7 @@ class BehaviorClassifier(object):
 		Initializes path variables to the code, classifier, tracker, and jaaba, and executes the functions
 		to select and classify a video
 		'''
-
-		#background variables
-		self.num_wells = 12
-		self.n_cpus = 2
+		self.calib = r'C:\Users\Ben\Documents\COURTSHIP TEST VID\video1_calibration.mat'
 
 		#select the video file
 		self.load_single()
@@ -52,15 +49,15 @@ class BehaviorClassifier(object):
 
 		#MATLAB stuff
 		#calibrate the tracker
-		self.calibrate_tracker()
+		#self.calibrate_tracker()
 		#wells to exclude
 		self.checkbox_grid()
 		#find centers of wells for matching flies to well
 		self.find_centers() # PATRICK EXCLUDES THIS
 		#track the video
-		self.run_tracker()
+		#self.run_tracker()
 		#reorganize the folders for JAABA
-		self.prepare_JAABA()
+		#self.prepare_JAABA()
 		
 		#JAABA stuff
 		#run the JAABA program
@@ -146,7 +143,7 @@ class BehaviorClassifier(object):
 		"""
 		root = tk.Tk()
 		root.withdraw()
-		MsgBox = tk.messagebox.askquestion('Add APT',"Would you like to add an APT trackekr before classification?", icon = 'warning')
+		MsgBox = tk.messagebox.askquestion('Add APT',"Would you like to add an APT tracker before classification?", icon = 'warning')
 		if MsgBox == 'yes':
 			root.destroy()
 			self.load_aptpath()
@@ -254,7 +251,7 @@ class BehaviorClassifier(object):
 		video to a new folder so it does not also get tracked.
 		"""
 		print('Starting video crop')
-		p = Pool(self.n_cpus)
+		p = Pool(2)
 		#need to set current directory for moviepy
 		os.chdir(self.root)
 		path = self.filename
@@ -406,7 +403,7 @@ class BehaviorClassifier(object):
 		lowR = pixels - width
 		highR = pixels + width
 
-		num_wells = self.num_wells
+		num_wells = 12
 		videofile = self.filename
 
 		#open the video
@@ -610,7 +607,7 @@ class BehaviorClassifier(object):
 		---------
 		Code Assumes that the number of wells is 12, if not this parameter needs to be changed below
 		"""
-		num_wells = self.num_wells  # Change this parameter as needed
+		num_wells = 12  # Change this parameter as needed
 		# Create dictionary for the 12 wells we'll edit later
 		d = {'well' + str(i): i for i, j in enumerate(range(num_wells))}
 		# inputted array is x,y,r of each circle, grab the x and y
