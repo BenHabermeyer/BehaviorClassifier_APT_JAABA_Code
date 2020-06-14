@@ -33,7 +33,6 @@ class BehaviorClassifier(object):
 		Initializes path variables to the code, classifier, tracker, and jaaba, and executes the functions
 		to select and classify a video
 		'''
-		self.calib = r'C:\Users\Ben\Documents\COURTSHIP TEST VID\video1_calibration.mat'
 
 		#select the video file
 		self.load_single()
@@ -49,7 +48,7 @@ class BehaviorClassifier(object):
 
 		#MATLAB stuff
 		#calibrate the tracker
-		#self.calibrate_tracker()
+		self.ask_calibrate()
 		#wells to exclude
 		self.checkbox_grid()
 		#find centers of wells for matching flies to well
@@ -62,7 +61,7 @@ class BehaviorClassifier(object):
 		#JAABA stuff
 		#run the JAABA program
 		self.classify_behavior()
-		#get the output
+		#get the output data file
 		self.get_classifier_data()
 
 		'''
@@ -92,7 +91,7 @@ class BehaviorClassifier(object):
 		print('Please select the file corresponding to the video you would like to process')
 		root = tk.Tk()
 		root.withdraw()
-		self.filename = filedialog.askopenfilename()  # Set the filename of the video
+		self.filename = filedialog.askopenfilename(filetypes=[('mp4', '*mp4'), ('MP4', '*MP4')])  # Set the filename of the video
 		self.root = self.parent(self.filename)  # Set the video's folder
 		self.name, self.fullname = self.get_fname(self.filename)
 		root.destroy()
@@ -134,7 +133,7 @@ class BehaviorClassifier(object):
 		print('Please select the .jab classifier you would like to use')
 		root = tk.Tk()
 		root.withdraw()
-		self.classifier_path = filedialog.askopenfilename() 
+		self.classifier_path = filedialog.askopenfilename(filetypes=[('jab projects', '*.jab')]) 
 		root.destroy()
 
 	def load_aptpath(self):
@@ -146,12 +145,12 @@ class BehaviorClassifier(object):
 		MsgBox = tk.messagebox.askquestion('Add APT',"Would you like to add an APT tracker before classification?", icon = 'warning')
 		if MsgBox == 'yes':
 			root.destroy()
-			self.load_aptpath()
+			self.load_aptfolder()
 			self.load_lblfile()
 		else:
 			root.destroy()
 
-	def load_aptfolder():
+	def load_aptfolder(self):
 		"""
 		Launch a GUI so people can click on the folder with APT
 		"""
@@ -161,14 +160,14 @@ class BehaviorClassifier(object):
 		self.apt_path = filedialog.askdirectory()
 		root.destroy()
 
-	def load_lblfile():
+	def load_lblfile(self):
 		"""
 		Launch a GUI so people can click on the file with .lbl project
 		"""
 		print('Please select the .lbl tracker you would like to use')
 		root = tk.Tk()
 		root.withdraw()
-		self.tracker_path = filedialog.askopenfilename() 
+		self.tracker_path = filedialog.askopenfilename(filetypes=[('lbl projects', '*.lbl')]) 
 		root.destroy()
 
 	def parent(self, path):
@@ -277,6 +276,30 @@ class BehaviorClassifier(object):
 		self.fullname = outputname
 		self.name = self.name + '_cropped'
 		self.filename = self.root + '/' + self.fullname
+
+	def ask_calibrate(self):
+		"""
+		Asks if you would like to call flytracker calibration, if yes launches, if no select the calib file
+		"""
+		root = tk.Tk()
+		root.withdraw()
+		MsgBox = tk.messagebox.askquestion('Crop Video',"Would you like to launch FlyTracker calibration?", icon = 'warning')
+		if MsgBox == 'yes':
+			root.destroy()
+			self.calibrate_tracker()
+		else:
+			root.destroy()
+			self.select_calib()
+
+	def select_calib(self):
+		"""
+		select the calibration .mat file from a pre-calibrated video - remember which wells are excluded
+		"""
+		print('Please select the calibration .mat file corresponding to the video')
+		root = tk.Tk()
+		root.withdraw()
+		self.calib = filedialog.askopenfilename(filetypes=[('Calibration file', '*_calibration.mat')]) 
+		root.destroy()
 
 	def calibrate_tracker(self):
 		"""
