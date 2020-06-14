@@ -47,16 +47,19 @@ class BehaviorClassifier(object):
 		self.ask_crop()
 
 		#MATLAB stuff
-		#calibrate the tracker
-		self.ask_calibrate()
+		#calibrate the tracker NOT SURE IF THIS IS THE BEST WAY TO DO THIS RN MIGHT ADD STEPS LATER
+		self.ask_calibrate() 
 		#wells to exclude
 		self.checkbox_grid()
 		#find centers of wells for matching flies to well
 		self.find_centers() # PATRICK EXCLUDES THIS
 		#track the video
-		#self.run_tracker()
+		self.run_tracker()
 		#reorganize the folders for JAABA
-		#self.prepare_JAABA()
+		self.prepare_JAABA()
+		#launch APT GUI, if requested
+		if self.req_apt:
+			self.launch_apt()
 		
 		#JAABA stuff
 		#run the JAABA program
@@ -72,6 +75,7 @@ class BehaviorClassifier(object):
 		self.jaaba_path : JAABA folder path on computer
 		self.apt_path : APT folder path on computer
 		self.tracker_path : path to .lbl file
+		self.req_apt : boolean whether APT file was added or not
 		self.filename : full path to and ending with video name 
 		self.root : root of folder containing video, filename without the file extension
 		self.name : video name without extension
@@ -147,8 +151,10 @@ class BehaviorClassifier(object):
 			root.destroy()
 			self.load_aptfolder()
 			self.load_lblfile()
+			self.req_apt = True
 		else:
 			root.destroy()
+			self.req_apt = False
 
 	def load_aptfolder(self):
 		"""
@@ -571,10 +577,54 @@ class BehaviorClassifier(object):
 			print('could not find any engines to quit')
 			pass	
 
+	def launch_apt(self):
+		"""
+		Launches Animal Parts Tracker (APT) GUI in MATLAB code for tracking of the wings using the algorithm trained by Ben M.
+		Python pops up a dialogue with instructions to complete wing tracking in APT before continuing
+		Note: would be nice to make this run w/o user input, see https://github.com/kristinbranson/APT/wiki/Tracking-Movies-(DL-algorithms)
+		However, it still looks like manually loading the tracking project / algorithm is necessary
+		"""
+		print('Launching APT GUI')
+		os.chdir(self.code_path)
+		try:  # try quiting out of any lingering matlab engines
+			eng.quit()
+		except:  # if not just keep going with the code
+			print('could not find any engines to quit')
+			pass	
+		eng = matlab.engine.start_matlab() 
+
+		#videoname and trx file needed for tracking
+		eng.addpath(eng.genpath(self.apt_path))
+		eng.StartAPT()
+		videoname = self.root
+		trxfile = self.root+'/trx.mat'
+		lblfile = self.tracker_path
+		#eng.wing_tracking_call(videoname,trxfile) # does not currently use these inputs, they are in the call so future versions can run automatically
+
+		#wait for user input to continue
+		root = tk.Tk()
+		canvas = tk.Canvas(root, width = 550, height = 150)
+		canvas.pack()
+		
+		def continue_code():
+				root.destroy()
+
+		instructions = 'INSTRUCTIONS: \n1. File > Open > wing_tracker_v4.lbl/n2. Add Movie > (pick movie and associated trx file)\n3. (with new movie highlighted) Switch to Movie\n4. Track > Track selection and export results > Export Predictions to Trk File (Current Video) > (use default name) OK'    
+		txt = canvas.create_text(275, 60, '-text', instructions)
+		button = tk.Button (root, text='Press once wing tracking in APT is finished',command=continue_code,bg='white',fg='black')
+		canvas.create_window(275, 130, window=button)
+		root.mainloop()
+
+		try:  # try quiting out of any lingering matlab engines
+			eng.quit()
+		except:  # if not just keep going with the code
+			print('could not find any engines to quit')
+			pass	
+
 	def classify_behavior(self):
 		"""
 		Calls JAABA classifier from MATLAB
-		.jab file name is stored at the start, should be stored in the same spot as all the code
+		.jab file name is stored at the start
 		"""
 		print('Classifying behavior using JAABA')
 		os.chdir(self.code_path)
