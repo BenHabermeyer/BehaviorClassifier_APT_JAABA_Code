@@ -51,8 +51,6 @@ class BehaviorClassifier(object):
 		self.ask_calibrate() 
 		#wells to exclude
 		self.checkbox_grid()
-		#find centers of wells for matching flies to well
-		self.find_centers() # PATRICK EXCLUDES THIS
 		#track the video
 		self.run_tracker()
 		#reorganize the folders for JAABA
@@ -82,10 +80,6 @@ class BehaviorClassifier(object):
 		self.fullname : the video name with extension
 		self.calib : path to the calibration .mat file
 		self.excluded_wells : list of wells to remove from analysis
-		self.well_dictionary : dictionary mapping well to x and y center coordinates
-		self.well_circles : list containing lists of x,y, and radii coordinates of well circles
-		self.x_centers : x pixel coordinates of well centers
-		self.y_centers : y pixel coordinates of well centers
 		'''
 
 	def load_single(self):
@@ -418,111 +412,6 @@ class BehaviorClassifier(object):
 		#run loop indefinitely
 		master.mainloop()
 
-	def find_centers(self):
-		"""
-		Function finds the centers of circular wells for later analysis where flies will be identified by which well they are 
-		closest to the center of.
-		"""
-		#read the pixels per mm from the calibration file to decide how big circles to look for
-		matlab_struct = loadmat(self.calib, struct_as_record=False)
-		ppm = matlab_struct['calib'][0,0].PPM[0,0]
-		#diameter of well is 16mm so radius is half that
-		pixels = int(round(ppm * 16 / 2))
-		width = 10
-		lowR = pixels - width
-		highR = pixels + width
-
-		num_wells = 12
-		videofile = self.filename
-
-		#open the video
-		capture = cv2.VideoCapture(videofile)
-		
-		#indefinitely read in frames, and when 12 circles are present grab their locations and sizes
-		boolean = True
-		while(boolean):
-			ret, frame = capture.read()
-
-			#convert frame to grayscale, blut it, and loop for circles using HoughCircles algorithm
-			if frame is not None:
-				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-				blur = cv2.medianBlur(gray, 5)
-				circles = cv2.HoughCircles(blur, cv2.HOUGH_GRADIENT, 1, 20, 
-					param1=60, param2=30, minRadius=lowR, maxRadius=highR)
-
-				#convert circles to int type
-				if circles is not None:
-					circles = np.round(circles[0, :]).astype('int')
-
-					#remove intersecting circles, saving to circles2
-					circlelist = circles.tolist()
-					circles2 = []
-
-					def intersect(list1, list2):
-						#takes as input triplets [x1, y1, r1] and [x2, y2, r2] and finds if they intersect
-						distance = math.sqrt((list1[0]-list2[0])**2 + (list1[1]-list2[1])**2)
-						return distance <= list1[2]
-
-					#iterate through the circles adding to circles2 if they do not overlap with any other circles
-					for circ in circlelist:
-						if len(circles2) == 0:
-							circles2.append(circ)
-						else:
-							circle_intersects = False
-							for circ2 in circles2:
-								if intersect(circ, circ2):
-									circle_intersects = True
-							if circle_intersects == False:
-								circles2.append(circ)
-
-					#finally, make circles to be circles2
-					circles3 = np.array(circles2)
-
-					#draw the circles
-					color1 = random.randint(50, 255)
-					color2 = random.randint(50, 255)
-					for index, (x, y, r) in enumerate(circles3):
-						cv2.circle(frame, (x, y), r, (color1, 0, color2), 2)
-					
-					#if you found 12 circles do one of the following, else continue
-					if len(circles3) == num_wells:
-						#show the image with the circles plotted
-						while True:
-							cv2.imshow("Frame", frame)
-							key = cv2.waitKey(0) & 0xFF
-
-							#if it's not good then go to the next one
-							if key == ord('n'):
-								break
-
-							#save their locations and an image of the circles
-							elif key == ord('y'):
-								d = self.get_well_labels(circles3)
-								d.pop('well0', None)
-								dirname = os.path.dirname(videofile) + '/'
-								self.well_dictionary = d
-								self.well_circles = circles3
-								self.fname = dirname + "well_centers.jpg"
-								# write image
-								cv2.imwrite(self.fname, frame)
-								capture.release()
-								cv2.destroyAllWindows()
-								boolean = False
-								break
-
-		#code to segment the well positions and send to python
-		xvals = []
-		yvals = []
-		for i in range(1, 13):
-			data = self.well_dictionary['well' + str(i)]
-			datasplit = data.split('_')
-			xvals.append(int(datasplit[0]))
-			yvals.append(int(datasplit[1]))
-
-		#retains the x and y pixel locations of the center of the circles
-		self.x_centers = xvals
-		self.y_centers = yvals
-
 	def run_tracker(self):
 		"""
 		Launches MATLAB code for automatic tracking of the video after calibration using FlyTracker
@@ -646,7 +535,7 @@ class BehaviorClassifier(object):
 		"""
 		calls MATLAB function to grab the data from the JAABA output and write to an excel file
 		"""
-		print('Writing lunge data')
+		print('Writing classification data')
 		os.chdir(self.code_path)
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
@@ -656,53 +545,18 @@ class BehaviorClassifier(object):
 		eng = matlab.engine.start_matlab() 
 		directory = self.root
 		videoname = self.name
+		calibfile = self.calib
 		head, tail = os.path.split(self.classifier_path)
 		classifiername = tail.split('.')[0]
 		excluded = self.excluded_wells
-		xvals = self.x_centers
-		yvals = self.y_centers
 
-		#call whichever classifier you want
-		eng.get_lunges3(directory, videoname, classifiername, excluded, xvals, yvals, nargout = 0)
+		#creates excel file from data, matches flies to wells
+		eng.get_scores_data(directory, videoname, calibfile, classifiername, excluded, nargout = 0)
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
 		except:  # if not just keep going with the code
 			print('could not find any engines to quit')
 			pass
-
-	def get_well_labels(self, array):
-		"""
-		The purpose of this code is to use the circle generated from detect to generate a label (e.g. well0, well1,
-		well2) that associates with it. Well number is left to right, top to the bottom
-		:param array: an nx3 array(here 12x3), consisting of the (x,y) origin and radius of a circle.
-
-		IMPORTANT
-		---------
-		Code Assumes that the number of wells is 12, if not this parameter needs to be changed below
-		"""
-		num_wells = 12  # Change this parameter as needed
-		# Create dictionary for the 12 wells we'll edit later
-		d = {'well' + str(i): i for i, j in enumerate(range(num_wells))}
-		# inputted array is x,y,r of each circle, grab the x and y
-		array = np.array(list(zip(array[:, 0], array[:, 1])))
-		
-		# let's organize y values first
-		n1, n2 = 0, 4  # Slicing start, stop for the array we'll index
-		c = 1  # counter for the well label
-		while n2 <= num_wells:
-			# Create an array of just y values to loop over
-			y_arr = np.array([x for i, x in enumerate(array)
-						if i in array[:, 1].argsort()[n1:n2]])
-			# loop over the array we just made and inside the loop
-			# organize each y by the x, then edit value into dict d
-			for iterr, indx in enumerate(y_arr[:, 0].argsort()):
-				vals = str(y_arr[indx][0]) + '_' + str(y_arr[indx][1])
-				# add the values into the d, then increase the counter
-				d['well' + str(c)] = vals
-				c += 1
-			n1 += 4
-			n2 += 4
-		return d
 
 #create instance of class and run
 if __name__ == '__main__':
