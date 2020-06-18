@@ -15,7 +15,7 @@ function get_trk(apt_path, video_path, trx_path, directory)
 %directory: folder where all project files are located
 
 %debugging
-apt_path = 'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\APT';
+apt_path = 'C:\Users\Ben\Documents\BehaviorClassifier_Master_Folder\APT-master';
 video_path = 'C:\Users\Ben\Documents\COURTSHIP TEST VID\video1.MP4';
 trx_path = 'C:\Users\Ben\Documents\COURTSHIP TEST VID\trx.mat';
 directory = 'C:\Users\Ben\Documents\COURTSHIP TEST VID';
@@ -32,10 +32,10 @@ lObj = StartAPT;
 tmp = lObj.movieFilesAllFull(1);
 temp = defaultTrkFileName(lObj,tmp{:});
 [~,a,b] = fileparts(temp);
-trkname = [a,b];
+trkname = [a,b];    
 
 %call APT tracking from command line
 trk_path = [directory, '\', trkname];
 lObj.tracker.track({video_path}, 'trkfiles', {trk_path}, 'trxfiles', {trx_path});
-
+%lObj.tracker.track({video_path});
 end
