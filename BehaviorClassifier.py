@@ -57,7 +57,7 @@ class BehaviorClassifier(object):
 			#wells to exclude
 			self.checkbox_grid()
 			#track the video
-			#self.run_tracker()
+			self.run_tracker()
 			#reorganize the folders for JAABA
 			self.prepare_JAABA()
 			#launch APT GUI, if requested
@@ -491,14 +491,14 @@ class BehaviorClassifier(object):
 		Needs to grab the perframe folder and the tracking file and move to directory for JAABA.
 		"""
 		print('Preparing files for JAABA')
-		'''
+		
 		destination = self.root
 		filename = self.name
 		trx_path = destination + '/' + filename + '/' + filename + '_JAABA' + '/trx.mat'
 		perframe_path = destination + '/' + filename + '/' + filename + '_JAABA/perframe'
 		shutil.move(trx_path, destination)
 		shutil.move(perframe_path, destination)
-		'''
+		
 		#remove any repeated frames
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
@@ -507,7 +507,7 @@ class BehaviorClassifier(object):
 			pass
 		eng = matlab.engine.start_matlab() 
 		self.trxfile = self.root + '/trx.mat'
-		eng.cleanTrx(self.trxfile, nargout = 0)
+		eng.cleanTrx(self.trxfile, self.filename, nargout = 0)
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
 		except:  # if not just keep going with the code
