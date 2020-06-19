@@ -13,7 +13,7 @@ import random
 from PIL import Image, ImageTk, ImageDraw
 import PIL
 import time
-
+import logging
 
 class BehaviorClassifier(object):
 	'''
@@ -36,34 +36,51 @@ class BehaviorClassifier(object):
 
 		#select the video file
 		self.load_single()
-		#select all other folders and files needed
-		self.load_codepath()
-		self.load_flytrackerpath()
-		self.load_jaabapath()
-		self.load_classifierpath()
-		self.load_aptpath()
 
-		#ask if you want to crop the first x seconds
-		self.ask_crop()
+		#set up the logger file in the video directory
+		self.setup_logger()
 
-		#MATLAB stuff
-		#calibrate the tracker NOT SURE IF THIS IS THE BEST WAY TO DO THIS RN MIGHT ADD STEPS LATER
-		self.ask_calibrate() 
-		#wells to exclude
-		self.checkbox_grid()
-		#track the video
-		self.run_tracker()
-		#reorganize the folders for JAABA
-		self.prepare_JAABA()
-		#launch APT GUI, if requested
-		if self.req_apt:
-			self.launch_apt()
-		
-		#JAABA stuff
-		#run the JAABA program
-		self.classify_behavior()
-		#get the output data file
-		self.get_classifier_data()
+		try:
+			#select all other folders and files needed
+			self.load_codepath()
+			self.load_flytrackerpath()
+			self.load_jaabapath()
+			self.load_classifierpath()
+			self.load_aptpath()
+
+			#ask if you want to crop the first x seconds
+			self.ask_crop()
+
+			#MATLAB stuff
+			#calibrate the tracker NOT SURE IF THIS IS THE BEST WAY TO DO THIS RN MIGHT ADD STEPS LATER
+			self.ask_calibrate() 
+			#wells to exclude
+			self.checkbox_grid()
+			#track the video
+			#self.run_tracker()
+			#reorganize the folders for JAABA
+			self.prepare_JAABA()
+			#launch APT GUI, if requested
+			if self.req_apt:
+				self.launch_apt()
+			
+			#JAABA stuff
+			#run the JAABA program
+			self.classify_behavior()
+			#get the output data file
+			self.get_classifier_data()
+
+			#if you want to show all the function outputs, uncomment the line below
+			self.show_attributes()
+			print('*****************************************************')
+			print('COMPLETED')
+			print('*****************************************************')
+		except Exception:
+			self.show_attributes()
+			print('*****************************************************')
+			print('ERROR - CHECK LOG FILE')
+			print('*****************************************************')
+			self.logger.error("Fatal error in main loop", exc_info=True)
 
 		'''
 		VARIABLES CREATED
@@ -80,6 +97,8 @@ class BehaviorClassifier(object):
 		self.fullname : the video name with extension
 		self.calib : path to the calibration .mat file
 		self.excluded_wells : list of wells to remove from analysis
+		self.trxfile : path to trx.mat file
+		self.logger : logger which adds messages to .log file
 		'''
 
 	def load_single(self):
@@ -94,6 +113,17 @@ class BehaviorClassifier(object):
 		self.name, self.fullname = self.get_fname(self.filename)
 		root.destroy()
 
+	def setup_logger(self):
+		self.logger = logging.getLogger(__name__)
+		self.logger.setLevel(logging.INFO)
+		file_handler = logging.FileHandler(os.path.join(self.root, 'BehaviorClassifier.log'))
+		formatter = logging.Formatter('%(levelname)s:%(funcName)s:%(message)s')
+		file_handler.setFormatter(formatter)
+		self.logger.addHandler(file_handler)
+		
+		self.logger.info('Logger Instantiated')
+		self.logger.info('Video Selected')
+
 	def load_codepath(self):
 		"""
 		Launch a GUI so people can click on the folder with the code
@@ -103,6 +133,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.code_path = filedialog.askdirectory() 
 		root.destroy()
+		self.logger.info('Code Path Selected')
 
 	def load_flytrackerpath(self):
 		"""
@@ -113,6 +144,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.flytracker_path = filedialog.askdirectory() 
 		root.destroy()
+		self.logger.info('FlyTracker Path Selected')
 
 	def load_jaabapath(self):
 		"""
@@ -123,6 +155,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.jaaba_path = filedialog.askdirectory()
 		root.destroy()
+		self.logger.info('JAABA Path Selected')
 
 	def load_classifierpath(self):
 		"""
@@ -133,6 +166,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.classifier_path = filedialog.askopenfilename(filetypes=[('jab projects', '*.jab')]) 
 		root.destroy()
+		self.logger.info('Classifier .jab File Selected')
 
 	def load_aptpath(self):
 		"""
@@ -149,6 +183,7 @@ class BehaviorClassifier(object):
 		else:
 			root.destroy()
 			self.req_apt = False
+			self.logger.info('APT Path NOT Selected')
 
 	def load_aptfolder(self):
 		"""
@@ -159,6 +194,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.apt_path = filedialog.askdirectory()
 		root.destroy()
+		self.logger.info('APT Path Selected')
 
 	def load_lblfile(self):
 		"""
@@ -169,6 +205,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.tracker_path = filedialog.askopenfilename(filetypes=[('lbl projects', '*.lbl')]) 
 		root.destroy()
+		self.logger.info('Tracker .lbl File Selected')
 
 	def parent(self, path):
 		"""Returns parent directory of a path"""
@@ -190,6 +227,8 @@ class BehaviorClassifier(object):
 		self.attributes = '\n'.join("%s: %s" % item for item in vars(self).items())
 		print('\nHere are the attributes you can access using .:')
 		print(self.attributes)
+		self.logger.info('Here are the attributes you can access using .:')
+		self.logger.info(self.attributes)
 
 	def ask_crop(self):
 		"""
@@ -204,6 +243,7 @@ class BehaviorClassifier(object):
 			self.how_long_crop()
 		else:
 			root.destroy()
+			self.logger.info('Cropping NOT Selected')
 
 	def how_long_crop(self):
 		"""
@@ -276,6 +316,7 @@ class BehaviorClassifier(object):
 		self.fullname = outputname
 		self.name = self.name + '_cropped'
 		self.filename = self.root + '/' + self.fullname
+		self.logger.info('Cropping Completed')
 
 	def ask_calibrate(self):
 		"""
@@ -300,6 +341,7 @@ class BehaviorClassifier(object):
 		root.withdraw()
 		self.calib = filedialog.askopenfilename(filetypes=[('Calibration file', '*_calibration.mat')]) 
 		root.destroy()
+		self.logger.info('Calibration File Selected')
 
 	def calibrate_tracker(self):
 		"""
@@ -330,6 +372,7 @@ class BehaviorClassifier(object):
 
 		#calls dialog to ask if calibration should be accepted
 		self.good_calibration()
+		self.logger.info('FlyTracker Calibration Completed')
 		
 	def good_calibration(self):
 		"""
@@ -358,6 +401,7 @@ class BehaviorClassifier(object):
 		Dialog box with 12 checkboxes for the user to select which wells they would like to exclude, if any. 
 		"""
 		#list of excluded wells
+		print("Launching Well Exclusion Checkbox Grid")
 		self.excluded_wells = []
 
 		#callback for the "done" button appends to list wells whose buttons have been pressed
@@ -411,6 +455,7 @@ class BehaviorClassifier(object):
 
 		#run loop indefinitely
 		master.mainloop()
+		self.logger.info('Excluded Wells Completed')
 
 	def run_tracker(self):
 		"""
@@ -438,6 +483,7 @@ class BehaviorClassifier(object):
 		except:  # if not just keep going with the code
 			print('could not find any engines to quit')
 			pass
+		self.logger.info('FlyTracker Tracking Completed')
 
 	def prepare_JAABA(self):
 		"""
@@ -445,12 +491,14 @@ class BehaviorClassifier(object):
 		Needs to grab the perframe folder and the tracking file and move to directory for JAABA.
 		"""
 		print('Preparing files for JAABA')
+		'''
 		destination = self.root
 		filename = self.name
 		trx_path = destination + '/' + filename + '/' + filename + '_JAABA' + '/trx.mat'
 		perframe_path = destination + '/' + filename + '/' + filename + '_JAABA/perframe'
 		shutil.move(trx_path, destination)
 		shutil.move(perframe_path, destination)
+		'''
 		#remove any repeated frames
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
@@ -459,12 +507,13 @@ class BehaviorClassifier(object):
 			pass
 		eng = matlab.engine.start_matlab() 
 		self.trxfile = self.root + '/trx.mat'
-		eng.cleanTrx(trxfile, nargout = 0)
+		eng.cleanTrx(self.trxfile, nargout = 0)
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
 		except:  # if not just keep going with the code
 			print('could not find any engines to quit')
 			pass	
+		self.logger.info('Prepared JAABA Files')
 
 	def launch_apt(self):
 		"""
@@ -481,14 +530,14 @@ class BehaviorClassifier(object):
 		eng = matlab.engine.start_matlab() 
 
 		#call apt tracking
-		trx_path = os.path.join(self.root, 'trx.mat')
-		eng.get_trk(self.apt_path, self.filename, trx_path, self.tracker_path, nargout = 0)
+		eng.get_trk(self.apt_path, self.filename, self.trxfile, self.tracker_path, nargout = 0)
 
 		try:  # try quiting out of any lingering matlab engines
 			eng.quit()
 		except:  # if not just keep going with the code
 			print('could not find any engines to quit')
-			pass	
+			pass
+		self.logger.info('APT Tracking Completed, .trk Created')	
 
 	def classify_behavior(self):
 		"""
@@ -510,6 +559,7 @@ class BehaviorClassifier(object):
 		except:  # if not just keep going with the code
 			print('could not find any engines to quit')
 			pass	
+		self.logger.info('JAABA Classification with .jab Completed')
 
 	def get_classifier_data(self):
 		"""
@@ -537,12 +587,10 @@ class BehaviorClassifier(object):
 		except:  # if not just keep going with the code
 			print('could not find any engines to quit')
 			pass
+		self.logger.info('Writing Classification Data to Excel Completed')
 
 #create instance of class and run
 if __name__ == '__main__':
 	s = time.time()
 	self = BehaviorClassifier()
 	print('Program took this long to run: ' + str(time.time() - s) + ' seconds')
-
-	#if you want to show all the function outputs, uncomment the line below
-	self.show_attributes()
