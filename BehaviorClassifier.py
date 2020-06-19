@@ -46,28 +46,34 @@ class BehaviorClassifier(object):
 			self.load_flytrackerpath()
 			self.load_jaabapath()
 			self.load_classifierpath()
-			self.load_aptpath()
+			self.load_aptpath() #sets req_apt to true if needed
 
 			#ask if you want to crop the first x seconds
 			self.ask_crop()
 
 			#MATLAB stuff
-			#calibrate the tracker NOT SURE IF THIS IS THE BEST WAY TO DO THIS RN MIGHT ADD STEPS LATER
+			self.needs_trx = True # these variables will be set to false if other steps are selected
+			self.needs_trk = True
+			self.needs_scores = True
+			#calibrate the tracker
 			self.ask_calibrate() 
 			#wells to exclude
 			self.checkbox_grid()
-			#track the video
-			self.run_tracker()
-			#reorganize the folders for JAABA
-			self.prepare_JAABA()
+			#if didn't require calibration, ask if trx file has been generated
+			if self.needs_trx:
+				#track the video
+				self.run_tracker()
+				#reorganize the folders for JAABA
+				self.prepare_JAABA()
 			#launch APT GUI, if requested
-			if self.req_apt:
+			if self.req_apt and self.needs_trk:
 				self.launch_apt()
 			
 			#JAABA stuff
-			#run the JAABA program
-			self.classify_behavior()
-			#get the output data file
+			if self.needs_scores:
+				#run the JAABA program
+				self.classify_behavior()
+			#get the output data file - always need this
 			self.get_classifier_data()
 
 			#if you want to show all the function outputs, uncomment the line below
@@ -99,6 +105,9 @@ class BehaviorClassifier(object):
 		self.excluded_wells : list of wells to remove from analysis
 		self.trxfile : path to trx.mat file
 		self.logger : logger which adds messages to .log file
+		self.needs_trx : boolean whether flytracker tracking needs to be launched & files prepared
+		self.needs_trk : boolean whether apt needs to be launched
+		self.needs_scores : boolean whether jaaba needs to be launched
 		'''
 
 	def load_single(self):
@@ -324,13 +333,14 @@ class BehaviorClassifier(object):
 		"""
 		root = tk.Tk()
 		root.withdraw()
-		MsgBox = tk.messagebox.askquestion('Crop Video',"Would you like to launch FlyTracker calibration?", icon = 'warning')
+		MsgBox = tk.messagebox.askquestion('Calibrate Tracker',"Would you like to launch FlyTracker calibration?", icon = 'warning')
 		if MsgBox == 'yes':
 			root.destroy()
 			self.calibrate_tracker()
 		else:
 			root.destroy()
 			self.select_calib()
+			self.ask_track() #if you select calibration file, ask if you need to launch flytracker calibration as well
 
 	def select_calib(self):
 		"""
@@ -457,6 +467,38 @@ class BehaviorClassifier(object):
 		master.mainloop()
 		self.logger.info('Excluded Wells Completed')
 
+	def ask_track(self):
+		"""
+		Asks if you would like to call flytracker tracking, if yes launches, if no select the trx file
+		"""
+		root = tk.Tk()
+		root.withdraw()
+		MsgBox = tk.messagebox.askquestion('Launch Tracker',"Would you like to launch FlyTracker tracking?", icon = 'warning')
+		if MsgBox == 'yes':
+			root.destroy()
+			self.run_tracker()
+			self.prepare_JAABA()
+			self.needs_trx = False
+		else:
+			root.destroy()
+			self.select_trx()
+			self.needs_trx = False
+			if self.req_apt: #after tracking see if apt is needed or not
+				self.ask_apt()
+			else:
+				self.ask_jaaba()
+
+	def select_trx(self):
+		"""
+		select the tracking trx.mat file from a pre-calibrated and tracked - remember which wells are excluded
+		"""
+		print('Please select the tracking .trx file corresponding to the video')
+		root = tk.Tk()
+		root.withdraw()
+		self.trxfile = filedialog.askopenfilename(filetypes=[('Trx file', '*trx.mat')]) 
+		root.destroy()
+		self.logger.info('Trx File Selected')	
+
 	def run_tracker(self):
 		"""
 		Launches MATLAB code for automatic tracking of the video after calibration using FlyTracker
@@ -515,6 +557,34 @@ class BehaviorClassifier(object):
 			pass	
 		self.logger.info('Prepared JAABA Files')
 
+	def ask_apt(self):
+		"""
+		Asks if you would like to call APT tracking, if yes launches, if no select the trk file
+		"""
+		root = tk.Tk()
+		root.withdraw()
+		MsgBox = tk.messagebox.askquestion('Launch APT',"Would you like to launch APT tracking?", icon = 'warning')
+		if MsgBox == 'yes':
+			root.destroy()
+			self.launch_apt()
+			self.needs_trk = False
+		else:
+			root.destroy()
+			self.select_trk()
+			self.needs_trk = False
+			self.ask_jaaba()
+
+	def select_trk(self):
+		"""
+		select the tracking .trk file from APT 
+		"""
+		print('Please select the .trk file corresponding to the video')
+		root = tk.Tk()
+		root.withdraw()
+		self.tracker_path = filedialog.askopenfilename(filetypes=[('trk file', '*.trk')]) 
+		root.destroy()
+		self.logger.info('trk File Selected')	
+
 	def launch_apt(self):
 		"""
 		Launches Animal Parts Tracker (APT) in MATLAB code for tracking of the wings using the algorithm trained by Ben M.
@@ -538,6 +608,22 @@ class BehaviorClassifier(object):
 			print('could not find any engines to quit')
 			pass
 		self.logger.info('APT Tracking Completed, .trk Created')	
+
+	def ask_jaaba(self):
+		"""
+		Asks if you would like to call JAABA classification, if yes launches
+		"""
+		root = tk.Tk()
+		root.withdraw()
+		MsgBox = tk.messagebox.askquestion('Launch JAABA',"Would you like to launch JAABA classification?", icon = 'warning')
+		if MsgBox == 'yes':
+			root.destroy()
+			self.classify_behavior()
+			self.needs_scores = False
+		else:
+			root.destroy()
+			self.needs_scores = False #don't need selection here since it's hardcoded	
+			self.logger.info('JAABA scores already created')	
 
 	def classify_behavior(self):
 		"""
