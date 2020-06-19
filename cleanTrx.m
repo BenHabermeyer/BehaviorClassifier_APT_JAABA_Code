@@ -17,9 +17,10 @@ end
 
 %find the number of repeated frames at the start of the video
 xpos = trx(id).x;
+ypos = trx(id).y;
 startind = 1;
 while true
-    if xpos(startind) == xpos(startind + 1)
+    if xpos(startind) == xpos(startind + 1) && ypos(startind) == ypos(startind + 1)
         startind = startind + 1;
     else
         break
