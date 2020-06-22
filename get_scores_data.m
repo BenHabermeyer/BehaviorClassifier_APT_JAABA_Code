@@ -137,7 +137,7 @@ function get_scores_data(directory, videoname, calibfile, classifiername, exclud
 
     %use a cell arary to store wells 1-12 flies A-B and their corresponding
     %information
-    ids = cell(24, 8);
+    ids = cell(24, 9);
     %instantiate positions
     counter = 1;
     for i = 1:12
@@ -244,6 +244,9 @@ function get_scores_data(directory, videoname, calibfile, classifiername, exclud
             %convert start time frames to seconds (assume 30fps)
             starttimetostring = sprintf('%d, ', round(startframes ./ 30));
             ids{ids_ind, 8} = starttimetostring(1:end-2);
+            %compute the bout lengths in number of frames
+            boutlengthtostring = sprintf('%d, ', endframes - startframes);
+            ids{ids_ind, 9} = boutlengthtostring(1:end-2);
             i = i + 1;
         end
     end
@@ -298,7 +301,8 @@ function get_scores_data(directory, videoname, calibfile, classifiername, exclud
     %write the data to an excel file - has directory name_classifier name
     filename = strcat(directory, '\', videoname, '_', classifiername, '_Data.xlsx');
     titles = {'Well Position', 'Fly ID', 'Excluded', 'Classified Behavior Count', ...
-        'Distance (mm)', 'Start Frames', 'End Frames', 'Start Times (s)'};
+        'Distance (mm)', 'Start Frames', 'End Frames', 'Start Times (s)', ...
+        'Behavior Bought Lengths (frames)'};
     output = [titles; ids];
     
     %write the main data to the first sheet and the 60s split data to the
