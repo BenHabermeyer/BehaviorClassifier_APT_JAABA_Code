@@ -28,8 +28,9 @@ addpath(genpath(apt_path))
 
 %generate filename for trk output
 [directory, vid, ~] = fileparts(video_path);
+checkcropped = split(vid, '_');
 [~,lblname,~] = fileparts(lbl_path);
-trk_path = [directory, '\', vid, '_', lblname, '_cpr.trk']; %note assumes cpr tracker
+trk_path = [directory, '\', checkcropped{1}, '_', lblname, '_cpr.trk']; %note assumes cpr tracker
 
 %launch APT and generate trk file
 lObj = StartAPT;
